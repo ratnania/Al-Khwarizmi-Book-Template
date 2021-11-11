@@ -1,0 +1,252 @@
+
+% *********** chapter0.tex
+\chapter{Divided differences}
+\label{ch:approximation-divided}
+\section{Lagrange interpolation}
+%For more details on this subject we refer to the books of De-Boor \cite{deboor} (for computational aspect), DeVore and Lorentz \cite{devore_book}, and Schumaker \cite{Schumaker1981a} (for more theoretical aspects).
+\noindent
+Let us consider the interpolation problem for a function $f$ on a given set of (distinct) points $\{ x_0, \cdots,x_n\}$. It is well known that the Lagrange interpolating polynomial of degree $n$ writes
+\begin{align}
+  p(x; x_0, \ldots, x_n) = \sum\limits_{i=0}^n f(x_i) L_i(x), \quad \mbox{where}~ L_i(x) = \prod\limits_{\underset{j \neq i}{j=0}}^n \frac{x-x_j}{x_i-x_j}, ~~ i = 0, \ldots, n
+  \label{eq:lagrange-interpolation}
+\end{align}
+The evaluation of the Lagrange interpolator can be done with different methods. The standard one is known as \textbf{Aitken method}. Assume we want to interpolate a function $f$ on the points $\{ x_0, \cdots, x_3 \}$. We start by computing:
+
+\begin{align*}
+  p(x; x_0, x_1) &= \frac{1}{x_1-x_0} \begin{vmatrix}f(x_0) & x_0 - x \\ f(x_1) & x_1 - x \end{vmatrix}
+  \\
+  p(x; x_0, x_2) &= \frac{1}{x_2-x_0} \begin{vmatrix}f(x_0) & x_0 - x \\ f(x_2) & x_2 - x \end{vmatrix}
+  \\
+  p(x; x_0, x_3) &= \frac{1}{x_3-x_0} \begin{vmatrix}f(x_0) & x_0 - x \\ f(x_3) & x_3 - x \end{vmatrix}
+  \\
+  p(x; x_0, x_1, x_3) &= \frac{1}{x_3-x_1} \begin{vmatrix}p(x; x_0, x_1) & x_1 - x \\ p(x; x_0, x_3) & x_3 - x \end{vmatrix}
+  \\
+  p(x; x_0, x_1, x_2) &= \frac{1}{x_2-x_1} \begin{vmatrix}p(x; x_0, x_1) & x_1 - x \\ p(x; x_0, x_2) & x_2 - x \end{vmatrix}
+\end{align*}
+Then the value of the interpolation polynomial of degree $3$ at $x$ is given by
+
+\begin{align*}
+  p(x; x_0, x_1, x_2, x_3) &= \frac{1}{x_3-x_2} \begin{vmatrix}p(x; x_0, x_1, x_2) & x_2 - x \\ p(x; x_0, x_1, x_3) & x_3 - x \end{vmatrix}
+\end{align*}
+The complexity of the Aitken method is $O(n^2)$ which is expensive, since we know that the Horner algorithm is only about $O(n)$.
+
+\subsection{Newton form and Neville's algorithm}
+\noindent
+Another interesting form is the so called \textbf{Newtonian form} of $p$ and writes
+\begin{align}
+  p(x) = \sum\limits_{i=0}^n a_i \prod\limits_{j=0}^{i-1}\left( x - x_j \right)    
+  \label{eq:lagrange-interpolation-newton-form}
+\end{align}
+Let us explain how to use the form \ref{eq:lagrange-interpolation-newton-form} to have a fast evaluation of the interpolant polynomial at a given point $x$.
+\\
+\noindent
+First, we define the polynomial $p_{j,k}$ as the interpolant polynomials of degree $k$ at the sites $\{ x_j, x_{j+1}, \cdots, x_{j+k} \}$, \textit{i.e.} $p_{j,k}(x_i) = f(x_i)$ for $i \in \{ j, j+1, \cdots, j+k \}$. Where we assume the sites to be ordered and distincts. Therefor, these polynomials exist and are unique.
+\\
+\noindent
+In the linear case, we have
+\begin{align}
+  p_{0,1} (x) = f(x_0) + (x-x_0) \frac{f(x_1) - f(x_0)}{x_1-x_0} = a_0 + (x-x_0)a_1
+%  \label{}
+\end{align}
+for some coefficients $a_0$ and $a_1$. In this case, we have 
+\begin{align}
+  a_0 =  f(x_0)
+%  \label{}
+\end{align}
+and
+\begin{align}
+  a_1 =  \frac{f(x_1) - f(x_0)}{x_1-x_0}  
+%  \label{}
+\end{align}
+$a_1$ is called the \textbf{first order divided difference} of $\mathcal{X} := \{ f(x_0), \cdots,  f(x_{n}) \}$.
+In the quadratic case, we can write
+\begin{align}
+  p_{0,2}(x) = p_{0,1}(x) + (x-x_0)(x-x_1)a_2  
+%  \label{}
+\end{align}
+where
+\begin{align}
+  a_2 =  \frac{f(x_2) - p_{0,1}(x_2)}{(x_2-x_0)(x_2-x_1)}  
+%  \label{}
+\end{align}
+$a_2$ is called the \textbf{second order divided difference} of $\mathcal{X}$.
+\noindent
+We notice that, we can write, for a given coefficient $a$, 
+\begin{align*}
+  p_{j,k}(x) = p_{j,k-1}(x) + (x-x_i) \ldots (x-x_{i+k-1}) a 
+\end{align*}
+The coefficient $a$ is the \textbf{$k$-th order divided difference} of $\mathcal{X}$ and will be denoted $[x_i, \cdots, x_{i+k}]f$.
+\\
+\noindent
+Since, 
+\begin{align*}
+  p_{j,k}(x) = \frac{x_{j+k}-x}{x_{j+k}-x_j} p_{j-1, k-1}(x) + \frac{x-x_{j}}{x_{j+k}-x_j} p_{j, k-1}(x), \quad j \in \{ 0, \ldots, p-k \}
+\end{align*}
+we get the following result, by comparing the coefficients of the monomial $x^k$,
+\begin{align}
+  [x_j, \ldots, x_{j+k}] f := \frac{1}{x_{j+k}-x_j} \left( [x_{j+1}, \ldots, x_{j+k}] f - [x_j, \ldots, x_{j+k-1}] f \right)  
+  \label{eq:neville-step1}
+\end{align}
+The Neville's algorithm is then given as follows
+\begin{enumerate}
+  \item set $[x_j]f := f(x_j)$, for all $j \in \{ 0, \ldots, p \}$, 
+  \item use \ref{eq:neville-step1} to compute $[x_j, \ldots, x_{j+k}] f$, for all  $j \in \{ 0, \ldots, p-k \}$ and $k \in \{ 1, \ldots, p \}$ 
+\end{enumerate}
+
+\paragraph{Horner algorithm} \mbox{}\\
+We give here a modified version for the Horner algorithm based on the Newtonian form. 
+\begin{enumerate}
+  \item set $q := a_p$ 
+  \item for every $k \in \{ p-1, p-2, \cdots, 0 \}$, we update $q$ using $q := a_k + (x-x_k)q$ 
+  \item the evaluation of the polynom at $x$ is then given by $p_{0,p}(x) := q$ 
+\end{enumerate}
+A quick study of the complexity leads to $p$ multiplications and $2p$ additions and substractions.
+
+\section{Hermite interpolation}
+In the Hermite interpolation, not only the values of a function are given, but also some of its successive derivatives. Given the set of interpolations points $X:=\{ x_0, \cdots,x_n\}$, we construct the set of distinct points $X^\star:=\{ x_0^\star, \cdots,x_s^\star\}$, for which we associate a multiplicity $m_j > 0$ with $\sum_{j=0}^s m_j = n+1$. Let $c_{j,l}$ be given constants. The Hermite interpolation problems is
+\begin{definition}[Hermite interpolation]
+  Find a polynomial $H_n \in \Pi_n$ such that
+  \begin{align}
+    H_n^{(l)}(x_j^\star) = c_{j,l} \quad 0 \leq l \leq m_j -1 \quad \mbox{and} \quad 0 \leq j \leq s
+%    \label{}
+  \end{align}
+\end{definition}
+It is easy to prove that there exist a unique polynomial $H_n$ that solves the Hermite interpolation problem.
+\\
+\noindent
+In the sequel, we shall define the set of constraints by reordering the coefficients $c_{j,l}$ such that $\left( d_j \right)_{j=0}^{n} := \{ c_{j,l}, 0 \leq j \leq s,  0 \leq l \leq m_j -1 \}$. Now we can state the general theorem for the Newton's method:
+\begin{theorem}[Newton's method]
+  There exist unique constants $a_0, \cdots, a_n$ for which the polynomials
+  \begin{align}
+    \begin{cases}
+      P_0(x) = a_0
+      \\
+      P_1(x) = a_0 + a_1(x-x_0)
+      \\
+      P_2(x) = a_0 + a_1(x-x_0) + a_2(x-x_0)(x-x_1)
+      \\
+      \ldots
+      \\
+      P_n(x) = a_0 + a_1(x-x_0) + \ldots + a_n\prod\limits_{j=0}^{n-1}\left( x - x_j \right) 
+    \end{cases}
+%    \label{}
+  \end{align}
+  are solutions of the Hermite interpolation problems for the sets of points $\{x_0\}$,  $\{x_0, x_1\}$, \ldots, $\{x_0, \cdots, x_n\}$ and given data $\left( d_j \right)_{j=0}^{n}$. 
+%  \label{}
+\end{theorem}
+\begin{remark}
+  The Hermite interpolation is a generalization of both Lagrange interpolation and the Taylor interpolation. Recall that Taylor interpolant of a smooth function $f \in \mathcal{C}^n([a,b])$ is defined by
+  \begin{align}
+    T_n(x) := f(x_0) + f^\prime(x_0)(x-x_0) + \ldots + f^{(n)}(x_0)\frac{(x-x_0)^n}{n!} 
+%    \label{}
+  \end{align}
+  These are the two extreme cases of Hermite interpolation where for the Lagrange interpolation the interpolation points are all distinct, while for Taylor interpolation there all equal.
+\end{remark}
+
+\section{Divided differences}
+\noindent
+\begin{definition}[Divided Differences (G. Kowalewski 1932)]
+For a set of points (not necessarily ordered) $X:=\{ x_0, \cdots,x_n\}$, and a function $f$, we define the \textit{n-th} divided difference of $f$ by 
+\begin{align}
+[ x_0,\cdots,x_n ] f := a_n
+\end{align}
+where $a_n$ is the coefficient of $x^n$ of the polynomial which interpolates $f$ at $x_0,\cdots,x_n$ as shown in the Newtonian form \ref{eq:lagrange-interpolation-newton-form}.
+\end{definition}
+
+Now let's go back to the divided differences operator. After giving additional examples, we shall present some properties.
+\paragraph{Examples} \mbox{}\\
+\begin{description}
+  \item[\textbf{Example 1.}] $[x_0]f=f(x_0)$ 
+  \item[\textbf{Example 2.}] $[x_0, x_1]f=\frac{f(x_0)-f(x_1)}{x_0-x_1}$ if $x_0 \neq x_1$
+  \item[\textbf{Example 3.}] $[x_0, x_0]f=f^\prime(x_0)$ 
+\end{description}
+%
+Because of the symmetry of the Newton form we have
+\begin{proposition}
+  $[x_0,\cdots,x_n]f$ is symmetric in $x_0,\cdots,x_n$. 
+\end{proposition}
+%
+From the Newton form, we also deduce
+\begin{proposition}
+  $[x_0,\cdots,x_n]f$ is constant if $f$ is a polynomial of degree $\leq n$, and zero for a polynomial of degree $< n$.
+\end{proposition}
+%
+Use the Taylor polynomial we have
+\begin{proposition}
+   $[x_0,\cdots,x_0]f = \frac{1}{n!}f^{(n)}(x_0)$.
+\end{proposition}
+
+\begin{proposition}
+  $[x_0,\cdots,x_n]f$ is a linear combinaition of the derivatives $f^{(l)}(x_i),~~0 \leq l \leq m_i - 1$, where $m_i$ is the multiplicity of the point $x_i$ in the set $X$.
+\end{proposition}
+%
+%\begin{proposition}[Newton's Formula]  
+%  $P_n(f,X;x)= \sum_{i=0}^n \prod_{j=0}^{i-1}(x-x_j) [x_0,\cdots,x_i]f$ is the interpolating polynomial for $f$ at the sites $X$.
+%\end{proposition}
+%
+\begin{proposition}
+  if $f \in \mathcal{C}^{n}([a,b]),~a\leq x_i \leq b, ~~~0 \leq i \leq n$, then :
+$$
+[x_0,\cdots,x_n]f = \frac{1}{n!}f^{(n)}(\xi), ~~~\mbox{for}~\mbox{some}~~ \xi \in  [a,b]
+$$
+\end{proposition}
+%
+\begin{proposition}
+  $[x_0,\cdots,x_n]f$ is continuous at the sites in $X$, if the derivatives of $f$ of proper orders are continuous at the considered site.
+\end{proposition}
+%
+\begin{proposition}
+  if $x_0 \neq x_n$, we have 
+  \begin{align}
+  [x_0,\cdots,x_n]f  = \frac{1}{x_n-x_0}\{  [x_1,\cdots,x_n]f - [x_0,\cdots,x_{n-1}]f \}
+  \end{align}
+  \label{prop:dist}
+\end{proposition}
+%
+\begin{proposition}[Leibniz's Formula]  
+ $$[x_0,\cdots,x_n](fg) = \sum_{i=0}^n [x_0,\cdots,x_i](f)~[x_i,\cdots,x_n](g)$$
+\end{proposition}
+%
+\begin{proposition}
+If $f^{(n-1)}$ is absolutely continuous, and if not all $x_i$ coincide, we have 
+$$
+[x_0,\cdots,x_n]f=\int_{0}^{1}dt_1 \int_{0}^{t_1}dt_2  \cdots \int_{0}^{t_{n-1}} f^{(n)}(x_0+h_1 t_1+h_2 t_2 +\cdots+h_n t_n )dt_n
+$$
+where we denote $h_i=x_{i+1}-x_i,~~i \in \{ 0, \cdots, n-1\}$. 
+\end{proposition}
+%
+\begin{corollary}
+$$
+| [x_0,\cdots,x_n]f | \leq \frac{1}{n!}\| f^{(n)} \|_{\infty}
+$$
+This shows, that the functional  $f \rightarrow [x_0,\cdots,x_n]f$ is continuous on $\mathcal{C}^n[a,b]$. 
+\end{corollary}
+%\begin{remark}
+%This formula is very important; in fact, later, we will define another family of splines, using a generalization of this formula. Another application of this formula, is the next result, where under the same assumptions we have:
+%\end{remark}
+%
+\begin{proposition}
+  If all $x_i$ are distinct, then 
+$$
+[x_0,\cdots,x_n]f = \int_{a}^{b} f^{(n)}(t) [x_0,\cdots,x_n] \left( \frac{(\cdot - t)_{+}^{n-1}}{(n-1)!}\right) dt
+$$
+This gives a representation of the functional $[x_0,\cdots,x_n]$ in term of the Peano kernel.
+\end{proposition}
+
+
+% ...................................................................
+
+% ...................................................................
+\section{Problems}
+\label{sec:approximation-divided-problems}
+TODO
+
+
+
+
+% *********** chapter1.tex
+\chapter{Historical Notes}
+\label{ch:approximation-historical-notes}
+
+TODO
+
